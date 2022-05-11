@@ -5,3 +5,4 @@ Makefile
 ft_ping
 *.o
 CMakeFiles
+.vscode/launch.json
