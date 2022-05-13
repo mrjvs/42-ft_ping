@@ -6,3 +6,4 @@ ft_ping
 *.o
 CMakeFiles
 .vscode/launch.json
+.cache
