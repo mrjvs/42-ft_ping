@@ -37,15 +37,7 @@ int		main(int argc, char *argv[]) {
 		ctx.seq++;
 		i--; // TODO temp
 		send_ping(&ctx);
-		t_bool rcv_success = recv_ping(&ctx);
-		if (!rcv_success) {
-			continue;
-		}
-		enum e_ftp_errors err = validate_response(&ctx);
-		if (err != FTP_VALID) {
-			printf("Incoming packet invalid: %i\n", err);
-			continue;
-		}
+		loop_til_response(&ctx);
 	}
 
 	// cleanup

@@ -1,4 +1,5 @@
 #include "context.h"
+#include "ftp_bool.h"
 #include "ftp_errors.h"
 #include <netinet/ip_icmp.h>
 #include <sys/socket.h>
@@ -10,7 +11,8 @@
   
 // TODO not copied checksum
 static unsigned short checksum(void *b, int len)
-{    unsigned short *buf = b;
+{
+	unsigned short *buf = b;
     unsigned int sum=0;
     unsigned short result;
   
@@ -47,11 +49,11 @@ void	send_ping(t_ftp_ctx *ctx) {
 		ctx->payload_ptr[i] = i;
 
 	// add checksum
-	packet.checksum = checksum(ctx->packet_buffer, ctx->packet_size);
+	packet.checksum = checksum(ctx->packet_buffer, ctx->payload_size+sizeof(packet));
 	memcpy(ctx->packet_buffer, &packet, sizeof(packet)); // TODO no memcpy
 
 	// send packet
-	if (sendto(ctx->sock, ctx->packet_buffer, ctx->packet_size, 0, (struct sockaddr*)&(ctx->addr), sizeof(struct sockaddr)) <= 0) {
+	if (sendto(ctx->sock, ctx->packet_buffer, ctx->payload_size+sizeof(packet), 0, (struct sockaddr*)&(ctx->addr), sizeof(struct sockaddr)) <= 0) {
 		// TODO proper exit: packet couldn't be sent
 		perror("sendto");
 		exit(1);
@@ -86,7 +88,8 @@ t_bool	recv_ping(t_ftp_ctx *ctx) {
 	return true;
 }
 
-enum e_ftp_errors	validate_response(t_ftp_ctx *ctx) {
+enum e_ftp_errors	validate_response(t_ftp_ctx *ctx, t_bool *is_match) {
+	*is_match = false;
 	// parse ip packet
 	if (ctx->response_size < IP_HDR_MIN)
 		return FTP_IVLD_IP;
@@ -101,15 +104,16 @@ enum e_ftp_errors	validate_response(t_ftp_ctx *ctx) {
 	// validate icmp packet details
 	if (packet->type != 0)
 		return FTP_IVLD_ICMP_TYPE;
-	if (packet->code != 0)
-		return FTP_IVLD_ICMP_CODE;
 	if (packet->un.echo.id != ctx->id)
 		return FTP_ID_MISMATCH;
 	if (packet->un.echo.sequence != ctx->seq)
 		return FTP_SEQ_MISMATCH;
+	if (packet->code != 0)
+		return FTP_IVLD_ICMP_CODE;
+	*is_match = true;
 
 	// validate payload
-	if (ctx->response_size - hdr_len != sizeof(struct icmphdr) + ctx->payload_size)
+	if (ctx->response_size - hdr_len < sizeof(struct icmphdr) + ctx->payload_size)
 		return FTP_PAYLOAD_MISMATCH;
 	ctx->payload_ptr = ((unsigned char *)packet) + sizeof(struct icmphdr);
 	// TODO validate payload by doing memcmp
@@ -122,4 +126,23 @@ enum e_ftp_errors	validate_response(t_ftp_ctx *ctx) {
 		return FTP_CHECKSUM_MISMATCH;
 	
 	return FTP_VALID;
+}
+
+t_bool	loop_til_response(t_ftp_ctx *ctx) {
+	t_bool	matches_packet = false;
+	enum e_ftp_errors err;
+	// TODO add timeout
+	while (!matches_packet) {
+		t_bool rcv_success = recv_ping(ctx);
+		if (!rcv_success) {
+			return false;
+		}
+		err = validate_response(ctx, &matches_packet);
+	}
+	if (err != FTP_VALID) {
+		printf("Incoming packet invalid: %i\n", err);
+		return false;
+	}
+	printf("got ping\n");
+	return true;
 }
