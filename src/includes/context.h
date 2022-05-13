@@ -17,6 +17,7 @@ typedef struct s_ftp_ctx {
 	size_t	payload_size;
 	unsigned char	*packet_buffer;
 	size_t	packet_size;
+	size_t	response_size;
 	struct sockaddr_in	addr;
 } t_ftp_ctx;
 
