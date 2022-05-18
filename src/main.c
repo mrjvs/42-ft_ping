@@ -3,6 +3,7 @@
 #include "ftp_methods.h"
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <unistd.h>
 
 t_ftp_ctx ctx = {
 	.verbose = false,
@@ -51,11 +52,9 @@ void	handle_interupt(int sig) {
 	(void)sig;
 	ctx.should_exit = true;
 	ctx.timeout_reached = true;
-	printf("INT rang\n");
 }
 
 void	handle_alarm(int sig) {
-	printf("alarm rang\n");
 	(void)sig;
 	ctx.timeout_reached = true;
 }

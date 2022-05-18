@@ -1,6 +1,8 @@
 #include "context.h"
 #include "ftp_bool.h"
 #include "ftp_errors.h"
+#include <asm-generic/errno-base.h>
+#include <asm-generic/errno.h>
 #include <netinet/ip_icmp.h>
 #include <sys/socket.h>
 
@@ -9,6 +11,8 @@
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <errno.h>
   
 // TODO not copied checksum
 static unsigned short checksum(void *b, int len)
@@ -77,7 +81,7 @@ t_bool	recv_ping(t_ftp_ctx *ctx) {
 	// TODO MSG_ERRQUEUE flag parsing
 
 	// wait for a packet
-	size_t received = recvmsg(ctx->sock, &msg, 0);
+	ssize_t received = recvmsg(ctx->sock, &msg, 0);
 	if (received <= 0) {
 		// TODO exit with proper error: failed to receive message
 		return false;
@@ -130,20 +134,22 @@ enum e_ftp_errors	validate_response(t_ftp_ctx *ctx, t_bool *is_match) {
 t_bool	loop_til_response(t_ftp_ctx *ctx) {
 	t_bool	matches_packet = false;
 	enum e_ftp_errors err;
-	t_bool	found_packet = true;
+	t_bool	found_packet = false;
 	t_bool	valid_found_packet;
 
 	// timeout
 	ctx->timeout_reached = false;
-	alarm(1000); // TODO temp number
+	alarm(1); // TODO temp number
 
 	// loop till timeout
 	while (true) {
 		t_bool rcv_success = recv_ping(ctx);
 		if (!rcv_success) {
-			if (!ctx->timeout_reached)
-				return false;
-			break;
+			if (ctx->timeout_reached)
+				break;
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				continue;
+			return false;
 		}
 
 		err = validate_response(ctx, &matches_packet);

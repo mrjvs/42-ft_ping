@@ -2,6 +2,7 @@
 #include "ftp_errors.h"
 #include "ftp_methods.h"
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -12,6 +13,14 @@ void	create_socket(t_ftp_ctx *ctx) {
 	if (ctx->sock == -1) {
 		// TODO exit with proper error: socket creation failed
 		perror("socket");
+		exit(1);
+	}
+
+	// set timeout for recv
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 1 };      
+    if (setsockopt (ctx->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout) < 0) {
+		// TODO exit with proper error: socket timeout settings failed
+		perror("setsockopt");
 		exit(1);
 	}
 }
