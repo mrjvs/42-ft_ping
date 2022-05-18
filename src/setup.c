@@ -1,7 +1,9 @@
 #include "context.h"
 #include "ftp_errors.h"
+#include "ftp_methods.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <stdio.h>
 
@@ -30,6 +32,11 @@ void	populate_context(t_ftp_ctx *ctx) {
 	ctx->addr.sin_addr = ctx->ip;
 	ctx->addr.sin_port = 0; // TODO parse args
 	ctx->addr.sin_family = AF_INET;
+}
+
+void	setup_handlers() {
+	signal(SIGINT, handle_interupt);
+	signal(SIGALRM, handle_alarm);
 }
 
 void	free_context(t_ftp_ctx *ctx) {

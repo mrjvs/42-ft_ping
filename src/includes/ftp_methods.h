@@ -13,4 +13,8 @@ void				populate_context(t_ftp_ctx *ctx);
 void				free_context(t_ftp_ctx *ctx);
 void				ensure_root();
 
+void				handle_interupt(int sig);
+void				handle_alarm(int sig);
+void				setup_handlers();
+
 #endif

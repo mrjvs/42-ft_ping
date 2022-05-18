@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <string.h>
+#include <unistd.h>
   
 // TODO not copied checksum
 static unsigned short checksum(void *b, int len)
@@ -78,9 +79,7 @@ t_bool	recv_ping(t_ftp_ctx *ctx) {
 	// wait for a packet
 	size_t received = recvmsg(ctx->sock, &msg, 0);
 	if (received <= 0) {
-		perror("recvmsg");
 		// TODO exit with proper error: failed to receive message
-		exit(1);
 		return false;
 	}
 
@@ -131,18 +130,39 @@ enum e_ftp_errors	validate_response(t_ftp_ctx *ctx, t_bool *is_match) {
 t_bool	loop_til_response(t_ftp_ctx *ctx) {
 	t_bool	matches_packet = false;
 	enum e_ftp_errors err;
-	// TODO add timeout
-	while (!matches_packet) {
+	t_bool	found_packet = true;
+	t_bool	valid_found_packet;
+
+	// timeout
+	ctx->timeout_reached = false;
+	alarm(1000); // TODO temp number
+
+	// loop till timeout
+	while (true) {
 		t_bool rcv_success = recv_ping(ctx);
 		if (!rcv_success) {
-			return false;
+			if (!ctx->timeout_reached)
+				return false;
+			break;
 		}
+
 		err = validate_response(ctx, &matches_packet);
+		if (matches_packet && !found_packet) {
+			// handle valid packet
+			found_packet = true;
+			valid_found_packet = err == FTP_VALID;
+			if (!valid_found_packet) {
+				printf("Incoming packet invalid: %i\n", err);
+			} else {
+				printf("got ping\n");
+			}
+		}
 	}
-	if (err != FTP_VALID) {
-		printf("Incoming packet invalid: %i\n", err);
+
+	// timeout handling
+	if (!found_packet) {
+		printf("timed out\n");
 		return false;
 	}
-	printf("got ping\n");
-	return true;
+	return valid_found_packet;
 }

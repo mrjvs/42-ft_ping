@@ -19,6 +19,8 @@ typedef struct s_ftp_ctx {
 	size_t				packet_size;
 	size_t				response_size;
 	struct sockaddr_in	addr;
+	t_bool				should_exit;
+	t_bool				timeout_reached;
 } t_ftp_ctx;
 
 #endif

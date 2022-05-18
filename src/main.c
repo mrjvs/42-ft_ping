@@ -15,6 +15,8 @@ t_ftp_ctx ctx = {
 	.payload_ptr = NULL,
 	.payload_size = 0,
 	.response_size = 0,
+	.should_exit = false,
+	.timeout_reached = false,
 };
 
 int		main(int argc, char *argv[]) {
@@ -29,18 +31,31 @@ int		main(int argc, char *argv[]) {
 	ensure_root(&ctx);
 	populate_context(&ctx);
 	create_socket(&ctx);
+	setup_handlers();
 
 	// the main event
-	int i = 5;
 	ctx.seq--; // so it starts at zero
-	while (i) {
+	while (!ctx.should_exit) {
 		ctx.seq++;
-		i--; // TODO temp
 		send_ping(&ctx);
 		loop_til_response(&ctx);
 	}
 
-	// cleanup
+	// exit
+	printf("TODO stats go here\n"); 
 	free_context(&ctx);
 	return 0;
+}
+
+void	handle_interupt(int sig) {
+	(void)sig;
+	ctx.should_exit = true;
+	ctx.timeout_reached = true;
+	printf("INT rang\n");
+}
+
+void	handle_alarm(int sig) {
+	printf("alarm rang\n");
+	(void)sig;
+	ctx.timeout_reached = true;
 }
