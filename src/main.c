@@ -18,6 +18,13 @@ t_ftp_ctx ctx = {
 	.response_size = 0,
 	.should_exit = false,
 	.timeout_reached = false,
+	.stats = {
+		.sent_count = 0,
+		.success_count = 0,
+		.u_sec_max_rtt = 0,
+		.u_sec_min_rtt = -1,
+		.u_sec_rtt_sum = 0,
+	}
 };
 
 int		main(int argc, char *argv[]) {
@@ -35,6 +42,7 @@ int		main(int argc, char *argv[]) {
 	setup_handlers();
 
 	// the main event
+	printf("PING %s (%s) %i(%i) bytes of data.\n", "yoink", "yoink", -1, -1);
 	ctx.seq--; // so it starts at zero
 	while (!ctx.should_exit) {
 		ctx.seq++;
@@ -42,8 +50,11 @@ int		main(int argc, char *argv[]) {
 		loop_til_response(&ctx);
 	}
 
-	// exit
-	printf("TODO stats go here\n"); 
+	// print stats and exit
+	printf("\n--- %s ping statistics ---\n", "yoink");
+	printf("%i packets transmitted, %i received, %i%% packet loss, time %ims\n", ctx.stats.sent_count, ctx.stats.success_count, -1, -1);
+	if (ctx.stats.success_count)
+		printf("rtt min/avg/max/mdev = %lli/%lli/%lli/%i ms TODO temp\n", ctx.stats.u_sec_min_rtt, ctx.stats.u_sec_rtt_sum/ctx.stats.success_count, ctx.stats.u_sec_max_rtt, -1);
 	free_context(&ctx);
 	return 0;
 }

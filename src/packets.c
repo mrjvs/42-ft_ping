@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include <errno.h>
+#include <sys/time.h>
   
 // TODO not copied checksum
 static unsigned short checksum(void *b, int len)
@@ -53,9 +54,14 @@ void	send_ping(t_ftp_ctx *ctx) {
 	for (size_t i = 0; i < ctx->payload_size; i++)
 		ctx->payload_ptr[i] = i;
 
+
 	// add checksum
 	packet.checksum = checksum(ctx->packet_buffer, ctx->payload_size+sizeof(packet));
 	memcpy(ctx->packet_buffer, &packet, sizeof(packet)); // TODO no memcpy
+
+	// set send time
+	gettimeofday(&(ctx->send_time), NULL); // TODO handle errors
+	ctx->stats.sent_count++;
 
 	// send packet
 	if (sendto(ctx->sock, ctx->packet_buffer, ctx->payload_size+sizeof(packet), 0, (struct sockaddr*)&(ctx->addr), sizeof(struct sockaddr)) <= 0) {
@@ -160,7 +166,22 @@ t_bool	loop_til_response(t_ftp_ctx *ctx) {
 			if (!valid_found_packet) {
 				printf("Incoming packet invalid: %i\n", err);
 			} else {
-				printf("got ping\n");
+				struct timeval time = {0,0};
+				gettimeofday(&time, NULL); // TODO handle errors
+				long long usec = 0;
+				usec += (time.tv_sec - ctx->send_time.tv_sec) * 1000;
+				long long tmp = time.tv_usec;
+				if (tmp < ctx->send_time.tv_usec)
+					tmp += 1000000; // if usec has rolled over, add 1 second so math stays correct
+				usec += tmp - ctx->send_time.tv_usec;
+
+				if (usec > ctx->stats.u_sec_max_rtt)
+					ctx->stats.u_sec_max_rtt = usec;
+				if (usec < ctx->stats.u_sec_min_rtt || ctx->stats.u_sec_min_rtt == -1)
+					ctx->stats.u_sec_min_rtt = usec;
+				ctx->stats.u_sec_rtt_sum += usec;
+				ctx->stats.success_count++;
+				printf("%i bytes from %s: icmp_seq=%i ttl=%i\n", -1, "yoink", ctx->seq, -1);
 			}
 		}
 	}
