@@ -180,8 +180,9 @@ t_bool	loop_til_response(t_ftp_ctx *ctx) {
 				if (usec < ctx->stats.u_sec_min_rtt || ctx->stats.u_sec_min_rtt == -1)
 					ctx->stats.u_sec_min_rtt = usec;
 				ctx->stats.u_sec_rtt_sum += usec;
+				ctx->stats.u_sec_rtt_sum2 += usec * usec;
 				ctx->stats.success_count++;
-				printf("%i bytes from %s: icmp_seq=%i ttl=%i\n", -1, "yoink", ctx->seq, -1);
+				printf("%i bytes from %s: icmp_seq=%i ttl=%i\n", -1, ctx->ip_str, ctx->seq, -1);
 			}
 		}
 	}

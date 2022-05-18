@@ -17,4 +17,9 @@ void				handle_interupt(int sig);
 void				handle_alarm(int sig);
 void				setup_handlers();
 
+int					calc_percentage(int a, int b);
+int					calc_u_to_ms(long long usec);
+int					calc_u_to_msdec(long long usec);
+long long			calc_mdev(int n, long long rtt_sum, long long rtt_sum2);
+
 #endif

@@ -13,11 +13,13 @@ typedef struct s_ftp_stats {
 	long long		u_sec_min_rtt;
 	long long		u_sec_max_rtt;
 	long long		u_sec_rtt_sum;
+	long long		u_sec_rtt_sum2;
 } t_ftp_stats;
 
 typedef struct s_ftp_ctx {
 	t_bool				verbose;
 	struct in_addr		ip;
+	char				*ip_str;
 	char				*domain;
 	int					sock;
 	int					seq;

@@ -24,6 +24,7 @@ t_ftp_ctx ctx = {
 		.u_sec_max_rtt = 0,
 		.u_sec_min_rtt = -1,
 		.u_sec_rtt_sum = 0,
+		.u_sec_rtt_sum2 = 0,
 	}
 };
 
@@ -34,6 +35,8 @@ int		main(int argc, char *argv[]) {
 	ctx.verbose = true;
 	ctx.payload_size = 32;
 	inet_pton(AF_INET, argv[1], &(ctx.ip));
+	ctx.ip_str = inet_ntoa(ctx.ip);
+	ctx.domain = argv[1];
 
 	// setup
 	ensure_root(&ctx);
@@ -42,7 +45,7 @@ int		main(int argc, char *argv[]) {
 	setup_handlers();
 
 	// the main event
-	printf("PING %s (%s) %i(%i) bytes of data.\n", "yoink", "yoink", -1, -1);
+	printf("PING %s (%s) %i(%i) bytes of data.\n", ctx.domain, ctx.ip_str, -1, -1);
 	ctx.seq--; // so it starts at zero
 	while (!ctx.should_exit) {
 		ctx.seq++;
@@ -51,10 +54,16 @@ int		main(int argc, char *argv[]) {
 	}
 
 	// print stats and exit
-	printf("\n--- %s ping statistics ---\n", "yoink");
-	printf("%i packets transmitted, %i received, %i%% packet loss, time %ims\n", ctx.stats.sent_count, ctx.stats.success_count, -1, -1);
-	if (ctx.stats.success_count)
-		printf("rtt min/avg/max/mdev = %lli/%lli/%lli/%i ms TODO temp\n", ctx.stats.u_sec_min_rtt, ctx.stats.u_sec_rtt_sum/ctx.stats.success_count, ctx.stats.u_sec_max_rtt, -1);
+	printf("\n--- %s ping statistics ---\n", ctx.domain);
+	printf("%i packets transmitted, %i received, %i%% packet loss, time %ims\n", ctx.stats.sent_count, ctx.stats.success_count, calc_percentage(ctx.stats.sent_count-ctx.stats.success_count, ctx.stats.sent_count), -1);
+	if (ctx.stats.success_count) {
+		printf("rtt min/avg/max/mdev = ");
+		printf("%i.%.3i/", calc_u_to_ms(ctx.stats.u_sec_min_rtt), calc_u_to_msdec(ctx.stats.u_sec_min_rtt));
+		printf("%i.%.3i/", calc_u_to_ms(ctx.stats.u_sec_rtt_sum/ctx.stats.success_count), calc_u_to_msdec(ctx.stats.u_sec_rtt_sum/ctx.stats.success_count));
+		printf("%i.%.3i/", calc_u_to_ms(ctx.stats.u_sec_max_rtt), calc_u_to_msdec(ctx.stats.u_sec_max_rtt));
+		long long mdev_usec = calc_mdev(ctx.stats.success_count, ctx.stats.u_sec_rtt_sum, ctx.stats.u_sec_rtt_sum2);
+		printf("%i.%.3i ms\n", calc_u_to_ms(mdev_usec), calc_u_to_msdec(mdev_usec));
+	}
 	free_context(&ctx);
 	return 0;
 }
